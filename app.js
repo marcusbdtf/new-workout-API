@@ -10,6 +10,8 @@ const bodyParser = require('body-parser');
 app.use(bodyParser.urlencoded({ extended: true }));
 const { v4: uuidv4 } = require('uuid');
 require('dotenv').config();
+const cors = require('cors');
+app.use(cors());
 
 
 const firebaseConfig = {
