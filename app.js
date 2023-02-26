@@ -4,8 +4,8 @@ const { updateDoc } = require('firebase/firestore');
 const express = require('express');
 const app = express();
 app.use(express.json());
-const PORT = process.env.PORT || 8080;
-const https = require('https');
+const PORT = process.env.PORT || 80;
+const http = require('http');
 const bodyParser = require('body-parser');
 app.use(bodyParser.urlencoded({ extended: true }));
 const { v4: uuidv4 } = require('uuid');
@@ -82,8 +82,6 @@ app.post('/add', async (req, res) => {
       res.status(500).send('Error updating workout');
     }
   });
-  
-  
 
 app.delete("/delete/:id", async (req, res) => {
     try {
