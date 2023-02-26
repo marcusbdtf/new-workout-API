@@ -1,3 +1,5 @@
 .env
 node_modules
 serviceAccountKey.js
+/node_modules
+/.env

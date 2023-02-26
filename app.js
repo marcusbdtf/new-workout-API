@@ -3,6 +3,7 @@ const { getFirestore, collection, getDocs, doc, setDoc, where, query, deleteDoc 
 const { updateDoc } = require('firebase/firestore');
 const express = require('express');
 const app = express();
+const router = express.Router(); // create router instance
 app.use(express.json());
 const PORT = process.env.PORT || 8080;
 const https = require('https');
@@ -13,7 +14,6 @@ require('dotenv').config();
 const cors = require('cors');
 app.use(cors());
 
-
 const firebaseConfig = {
     apiKey: process.env.API_KEY,
     authDomain: process.env.AUTH_DOMAIN,
@@ -22,7 +22,7 @@ const firebaseConfig = {
     storageBucket: process.env.STORAGE_BUCKET,
     messagingSenderId: process.env.MESSAGING_SENDER_ID,
     appId: process.env.APP_ID,
-  };
+};
 
 // Initialize Firebase app
 const defaultApp = initializeApp(firebaseConfig);
@@ -34,17 +34,17 @@ const workoutsCollection = collection(db, 'workouts');
 
 const workout = {workouts: []}
 
-app.get("/", (req,res)=>{
+router.get("/", (req,res)=>{
     res.sendFile(__dirname + "/index.html")
 })
 
-app.get("/log", async (req, res) => {
+router.get("/log", async (req, res) => {
     const snapshot = await getDocs(workoutsCollection);
     const workouts = snapshot.docs.map(doc => doc.data());
     res.send(workouts);
 });
 
-app.post('/add', async (req, res) => {
+router.post('/add', async (req, res) => {
     try {
       const newWorkout = {
         id: uuidv4(),
@@ -62,7 +62,7 @@ app.post('/add', async (req, res) => {
     }
   });
 
-  app.put("/edit/:id", async (req, res) => {
+  router.put("/edit/:id", async (req, res) => {
     try {
       const q = query(collection(db, 'workouts'), where("id", "==", req.params.id));
       // query to find specific document containing id
@@ -86,12 +86,14 @@ app.post('/add', async (req, res) => {
   
   
 
-app.delete("/delete/:id", async (req, res) => {
+router.delete("/delete/:id", async (req, res) => {
     try {
         const workoutId = req.params.id;
         const workoutRef = doc(workoutsCollection, workoutId);
         await deleteDoc(workoutRef);
         res.send(`Successfully deleted workout with id: ${workoutId}`);
+   
+
     } catch (e) {
         console.error(e);
         res.status(500).send('Error deleting workout');
@@ -101,3 +103,4 @@ app.delete("/delete/:id", async (req, res) => {
 app.listen(PORT, ()=>{
     console.log("listening to port "+ PORT)
 })
+
