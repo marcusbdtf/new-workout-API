@@ -1,6 +1,4 @@
-const { initializeApp } = require('firebase/app');
-const { getFirestore, collection, getDocs, doc, setDoc, where, query, deleteDoc } = require('firebase/firestore');
-const { updateDoc } = require('firebase-admin/firestore');
+const admin = require('firebase-admin');
 const express = require('express');
 const app = express();
 app.use(express.json());
@@ -13,24 +11,19 @@ require('dotenv').config();
 const cors = require('cors');
 app.use(cors());
 
-
+const serviceAccount = require('./serviceAccountKey.json');
 const firebaseConfig = {
-    apiKey: process.env.API_KEY,
-    authDomain: process.env.AUTH_DOMAIN,
-    projectId: process.env.PROJECT_ID,
-    storageBucket: process.env.STORAGE_BUCKET,
-    messagingSenderId: process.env.MESSAGING_SENDER_ID,
-    appId: process.env.APP_ID,
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: "https://workoutlog-947f7.firebaseio.com"
 };
 
-
 // Initialize Firebase app
-const defaultApp = initializeApp(firebaseConfig);
+admin.initializeApp(firebaseConfig);
 // Initialize Firestore
-const db = getFirestore(defaultApp);
+const db = admin.firestore();
 
 // Collection name
-const workoutsCollection = collection(db, 'workouts');
+const workoutsCollection = db.collection('workouts');
 
 const workout = {workouts: []}
 
@@ -39,7 +32,7 @@ app.get("/", (req,res)=>{
 })
 
 app.get("/log", async (req, res) => {
-    const snapshot = await getDocs(workoutsCollection);
+    const snapshot = await workoutsCollection.get();
     const workouts = snapshot.docs.map(doc => doc.data());
     res.send(workouts);
 });
@@ -53,7 +46,7 @@ app.post('/add', async (req, res) => {
         weight: req.body.weight,
         date: new Date().toLocaleDateString(),
       };
-      const docRef = await setDoc(doc(workoutsCollection, newWorkout.id), newWorkout);
+      const docRef = await workoutsCollection.doc(newWorkout.id).set(newWorkout);
       res.send(`Workout ${newWorkout.name} was added`);
     } catch (e) {
       console.error(e);
@@ -61,10 +54,10 @@ app.post('/add', async (req, res) => {
     }
   });
 
-  app.put("/edit/:id", async (req, res) => {
+app.put("/edit/:id", async (req, res) => {
     try {
-      const q = query(collection(db, 'workouts'), where("id", "==", req.params.id));
-      const querySnapshot = await getDocs(q);
+      const q = workoutsCollection.where("id", "==", req.params.id);
+      const querySnapshot = await q.get();
       const updates = querySnapshot.docs.map(doc => {
         const updatedWorkout = {
           name: req.body.name || doc.data().name,
@@ -72,7 +65,7 @@ app.post('/add', async (req, res) => {
           weight: req.body.weight || doc.data().weight,
           date: doc.data().date
         };
-        return setDoc(doc.ref, updatedWorkout, { merge: true });
+        return workoutsCollection.doc(doc.id).set(updatedWorkout, { merge: true });
       });
       await Promise.all(updates);
       res.send(`Workout with id: ${req.params.id} was updated`);
@@ -85,8 +78,8 @@ app.post('/add', async (req, res) => {
 app.delete("/delete/:id", async (req, res) => {
     try {
         const workoutId = req.params.id;
-        const workoutRef = doc(workoutsCollection, workoutId);
-        await deleteDoc(workoutRef);
+        const workoutRef = workoutsCollection.doc(workoutId);
+        await workoutRef.delete();
         res.send(`Successfully deleted workout with id: ${workoutId}`);
     } catch (e) {
         console.error(e);
@@ -97,4 +90,3 @@ app.delete("/delete/:id", async (req, res) => {
 app.listen(PORT, ()=>{
     console.log("listening to port "+ PORT)
 })
-
