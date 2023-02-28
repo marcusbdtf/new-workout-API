@@ -64,8 +64,7 @@ app.post('/add', async (req, res) => {
   app.put("/edit/:id", async (req, res) => {
     try {
       const q = query(collection(db, 'workouts'), where("id", "==", req.params.id));
-      // query to find specific document containing id
-      const querySnapshot = await getDocs(q); // executes the query to get a 
+      const querySnapshot = await getDocs(q);
       const updates = querySnapshot.docs.map(doc => {
         const updatedWorkout = {
           name: req.body.name || doc.data().name,
@@ -73,9 +72,9 @@ app.post('/add', async (req, res) => {
           weight: req.body.weight || doc.data().weight,
           date: doc.data().date
         };
-        return updateDoc(doc.ref, updatedWorkout);
+        return setDoc(doc.ref, updatedWorkout, { merge: true });
       });
-      await Promise.all(updates); // waits for updates to complete before sending response
+      await Promise.all(updates);
       res.send(`Workout with id: ${req.params.id} was updated`);
     } catch (e) {
       console.error(e);
