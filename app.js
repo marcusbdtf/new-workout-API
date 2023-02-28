@@ -1,6 +1,6 @@
 const { initializeApp } = require('firebase/app');
 const { getFirestore, collection, getDocs, doc, setDoc, where, query, deleteDoc } = require('firebase/firestore');
-const { updateDoc } = require('firebase/firestore');
+const { updateDoc } = require('firebase-admin/firestore');
 const express = require('express');
 const app = express();
 app.use(express.json());
