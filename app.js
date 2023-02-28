@@ -4,7 +4,7 @@ const { updateDoc } = require('firebase-admin/firestore');
 const express = require('express');
 const app = express();
 app.use(express.json());
-const PORT = process.env.PORT || 80;
+const PORT = process.env.PORT || 8080;
 const http = require('http');
 const bodyParser = require('body-parser');
 app.use(bodyParser.urlencoded({ extended: true }));
