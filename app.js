@@ -25,66 +25,93 @@ const db = admin.firestore();
 // Collection name
 const workoutsCollection = db.collection('workouts');
 
-const workout = {workouts: []}
-
 app.get("/", (req,res)=>{
     res.sendFile(__dirname + "/index.html")
 })
 
-app.get("/log", async (req, res) => {
-    const snapshot = await workoutsCollection.get();
-    const workouts = snapshot.docs.map(doc => doc.data());
-    res.send(workouts);
+// Get all workouts for all users
+app.get('/workouts/backup', async (req, res) => {
+  try {
+    const allWorkoutsRef = await workoutsCollection.get();
+    const allWorkouts = allWorkoutsRef.docs.map(doc => doc.data());
+    res.send(allWorkouts);
+  } catch (e) {
+    console.error(e);
+    res.status(500).send('Error getting all workouts');
+  }
 });
 
-app.post('/add', async (req, res) => {
-    try {
-      const newWorkout = {
-        id: uuidv4(),
-        name: req.body.name,
-        reps: req.body.reps,
-        weight: req.body.weight,
-        date: new Date().toLocaleDateString(),
-      };
-      const docRef = await workoutsCollection.doc(newWorkout.id).set(newWorkout);
-      res.send(`Workout ${newWorkout.name} was added`);
-    } catch (e) {
-      console.error(e);
-      res.status(500).send('Error adding new workout');
-    }
-  });
+// Get all workouts for a specific user
+app.get('/workouts/:userId', async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const userWorkoutsRef = await workoutsCollection.where('userId', '==', userId).get();
+    const workouts = userWorkoutsRef.docs.map(doc => doc.data());
+    res.send(workouts);
+  } catch (e) {
+    console.error(e);
+    res.status(500).send('Error getting workouts');
+  }
+});
 
-app.put("/edit/:id", async (req, res) => {
-    try {
-      const q = workoutsCollection.where("id", "==", req.params.id);
-      const querySnapshot = await q.get();
-      const updates = querySnapshot.docs.map(doc => {
-        const updatedWorkout = {
-          name: req.body.name || doc.data().name,
-          reps: req.body.reps || doc.data().reps,
-          weight: req.body.weight || doc.data().weight,
-          date: doc.data().date
-        };
-        return workoutsCollection.doc(doc.id).set(updatedWorkout, { merge: true });
+app.post('/workouts', async (req, res) => {
+  try {
+    const newWorkout = {
+      id: uuidv4(),
+      userId: req.body.userId,
+      name: req.body.name,
+      reps: req.body.reps,
+      weight: req.body.weight,
+      date: new Date().toLocaleDateString(),
+    };
+
+    await workoutsCollection.doc(newWorkout.id)
+      .set({
+        id: newWorkout.id,
+        userId: newWorkout.userId,
+        name: newWorkout.name,
+        reps: newWorkout.reps,
+        weight: newWorkout.weight,
+        date: newWorkout.date
       });
-      await Promise.all(updates);
-      res.send(`Workout with id: ${req.params.id} was updated`);
-    } catch (e) {
-      console.error(e);
-      res.status(500).send('Error updating workout');
-    }
-  });
 
-app.delete("/delete/:id", async (req, res) => {
-    try {
-        const workoutId = req.params.id;
-        const workoutRef = workoutsCollection.doc(workoutId);
-        await workoutRef.delete();
-        res.send(`Successfully deleted workout with id: ${workoutId}`);
-    } catch (e) {
-        console.error(e);
-        res.status(500).send('Error deleting workout');
-    }
+    res.send(`Workout ${newWorkout.name} was added`);
+  } catch (e) {
+    console.error(e);
+    res.status(500).send('Error adding new workout');
+  }
+});
+
+app.put('/workouts/:userId/:id', async (req, res) => {
+  try {
+    const workoutId = req.params.id;
+    const updatedWorkout = {
+      id: workoutId,
+      userId: req.params.userId,
+      name: req.body.name,
+      reps: req.body.reps,
+      weight: req.body.weight,
+      date: new Date().toLocaleDateString(),
+    };
+    const workoutRef = workoutsCollection.doc(workoutId);
+    await workoutRef.set(updatedWorkout);
+    res.send(`Workout with id: ${workoutId} was updated`);
+  } catch (e) {
+    console.error(e);
+    res.status(500).send('Error updating workout');
+  }
+});
+
+app.delete('/workouts/:userId/:id', async (req, res) => {
+  try {
+    const workoutId = req.params.id;
+    const workoutRef = workoutsCollection.doc(workoutId);
+    await workoutRef.delete();
+    res.send(`Workout with id: ${workoutId} was deleted`);
+  } catch (e) {
+    console.error(e);
+    res.status(500).send('Error deleting workout');
+  }
 });
 
 app.listen(PORT, ()=>{
